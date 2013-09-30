@@ -141,6 +141,9 @@ public class PhoneGlobals extends ContextWrapper {
 
     private static PhoneGlobals sMe;
 
+    private static final String ACTION_MANAGED_ROAMING_IND =
+            "codeaurora.intent.action.ACTION_MANAGED_ROAMING_IND";
+
     // A few important fields we expose to the rest of the package
     // directly (rather than thru set/get methods) for efficiency.
     CallController callController;
@@ -404,6 +407,7 @@ public class PhoneGlobals extends ContextWrapper {
             intentFilter.addAction(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
             intentFilter.addAction(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED);
             intentFilter.addAction(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED);
+            intentFilter.addAction(ACTION_MANAGED_ROAMING_IND);
             registerReceiver(mReceiver, intentFilter);
 
             //set the default values for the preferences in the phone.
@@ -844,6 +848,14 @@ public class PhoneGlobals extends ContextWrapper {
                           + "but ECM isn't supported for phone: " + phoneInEcm.getPhoneName());
                     phoneInEcm = null;
                 }
+            } else if (action.equals(ACTION_MANAGED_ROAMING_IND)) {
+                int subscription = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                        SubscriptionManager.getDefaultSubId());
+                Intent createIntent = new Intent();
+                createIntent.setClass(context, ManagedRoaming.class);
+                createIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                createIntent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subscription);
+                context.startActivity(createIntent);
             }
         }
     }
