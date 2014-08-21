@@ -139,6 +139,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int EVENT_PERFORM_NETWORK_SCAN_DONE = 40;
     private static final int CMD_SET_NETWORK_SELECTION_MODE_MANUAL = 41;
     private static final int EVENT_SET_NETWORK_SELECTION_MODE_MANUAL_DONE = 42;
+    private static final int CMD_SIM_GET_ATR = 43;
+    private static final int EVENT_SIM_GET_ATR_DONE = 44;
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
@@ -318,6 +320,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case CMD_TRANSMIT_APDU_LOGICAL_CHANNEL:
                     request = (MainThreadRequest) msg.obj;
                     iccArgument = (IccAPDUArgument) request.argument;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
                     if (uiccCard == null) {
                         loge("iccTransmitApduLogicalChannel: No UICC");
                         request.result = new IccIoResult(0x6F, 0, (byte[])null);
@@ -337,12 +340,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case EVENT_TRANSMIT_APDU_LOGICAL_CHANNEL_DONE:
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
+                    request.result = ar.result;
                     if (ar.exception == null && ar.result != null) {
-                        request.result = ar.result;
+                        if (DBG) log("EVENT_TRANSMIT_APDU_LOGICAL_CHANNEL_DONE successful");
                     } else {
-                        request.result = new IccIoResult(0x6F, 0, (byte[])null);
                         if (ar.result == null) {
-                            loge("iccTransmitApduLogicalChannel: Empty response");
+                            loge("iccTransmitApduLogicalChannel: Empty response received."
+                                    + "Setting result: sw1 = 0x6F and sw2 = 0");
+                            // If the request fails with an empty payload.
+                            request.result = new IccIoResult(0x6F, 0, (byte[])null);
                         } else if (ar.exception instanceof CommandException) {
                             loge("iccTransmitApduLogicalChannel: CommandException: " +
                                     ar.exception);
@@ -358,6 +364,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case CMD_TRANSMIT_APDU_BASIC_CHANNEL:
                     request = (MainThreadRequest) msg.obj;
                     iccArgument = (IccAPDUArgument) request.argument;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
                     if (uiccCard == null) {
                         loge("iccTransmitApduBasicChannel: No UICC");
                         request.result = new IccIoResult(0x6F, 0, (byte[])null);
@@ -376,12 +383,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case EVENT_TRANSMIT_APDU_BASIC_CHANNEL_DONE:
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
+                    request.result = ar.result;
                     if (ar.exception == null && ar.result != null) {
-                        request.result = ar.result;
+                        if (DBG) log("EVENT_TRANSMIT_APDU_BASIC_CHANNEL_DONE successful");
                     } else {
-                        request.result = new IccIoResult(0x6F, 0, (byte[])null);
                         if (ar.result == null) {
-                            loge("iccTransmitApduBasicChannel: Empty response");
+                            loge("iccTransmitApduBasicChannel: Empty response received."
+                            + "Setting result: sw1 = 0x6F and sw2 = 0");
+                            request.result = new IccIoResult(0x6F, 0, (byte[])null);
                         } else if (ar.exception instanceof CommandException) {
                             loge("iccTransmitApduBasicChannel: CommandException: " +
                                     ar.exception);
@@ -397,6 +406,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case CMD_EXCHANGE_SIM_IO:
                     request = (MainThreadRequest) msg.obj;
                     iccArgument = (IccAPDUArgument) request.argument;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
                     if (uiccCard == null) {
                         loge("iccExchangeSimIO: No UICC");
                         request.result = new IccIoResult(0x6F, 0, (byte[])null);
@@ -415,10 +425,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case EVENT_EXCHANGE_SIM_IO_DONE:
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
+                    request.result = ar.result;
                     if (ar.exception == null && ar.result != null) {
-                        request.result = ar.result;
+                        if (DBG) log("EVENT_EXCHANGE_SIM_IO_DONE successful");
                     } else {
-                        request.result = new IccIoResult(0x6f, 0, (byte[])null);
+                        if (ar.result == null) {
+                            loge("ccExchangeSimIO: Empty Response recieved."
+                            + "Setting result: sw1 = 0x6F and sw2 = 0");
+                            request.result = new IccIoResult(0x6F, 0, (byte[])null);
+                        } else if (ar.exception instanceof CommandException) {
+                            loge("iccTransmitApduBasicChannel: CommandException: " +
+                                    ar.exception);
+                        } else {
+                            loge("iccTransmitApduBasicChannel: Unknown exception");
+                        }
                     }
                     synchronized (request) {
                         request.notifyAll();
@@ -462,6 +482,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
                 case CMD_OPEN_CHANNEL:
                     request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
                     if (uiccCard == null) {
                         loge("iccOpenLogicalChannel: No UICC");
                         request.result = new IccIoResult(0x6F, 0, (byte[])null);
@@ -519,6 +540,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
                 case CMD_CLOSE_CHANNEL:
                     request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
                     if (uiccCard == null) {
                         loge("iccCloseLogicalChannel: No UICC");
                         request.result = new IccIoResult(0x6F, 0, (byte[])null);
@@ -748,6 +770,42 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     }
                     break;
 
+                case CMD_SIM_GET_ATR:
+                    request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardUsingSubId(request.subId);
+                    if (uiccCard == null) {
+                        loge("getAtr: No UICC");
+                        request.result = "";
+                         synchronized (request) {
+                            request.notifyAll();
+                        }
+                    } else {
+                        onCompleted = obtainMessage(EVENT_SIM_GET_ATR_DONE, request);
+                        uiccCard.getAtr(onCompleted);
+                    }
+                    break;
+
+                case EVENT_SIM_GET_ATR_DONE:
+                    ar = (AsyncResult) msg.obj;
+                    request = (MainThreadRequest) ar.userObj;
+                    if (ar.exception == null) {
+                        request.result = ar.result;
+                    } else {
+                        request.result = "";
+                        if (ar.result == null) {
+                            loge("ccExchangeSimIO: Empty Response");
+                        } else if (ar.exception instanceof CommandException) {
+                            loge("iccTransmitApduBasicChannel: CommandException: " +
+                                    ar.exception);
+                        } else {
+                            loge("iccTransmitApduBasicChannel: Unknown exception");
+                        }
+                    }
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
+                    break;
+
                 default:
                     Log.w(LOG_TAG, "MainThreadHandler: unexpected message code: " + msg.what);
                     break;
@@ -873,6 +931,12 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private Phone getPhone(int subId) {
         return PhoneFactory.getPhone(mSubscriptionController.getPhoneId(subId));
     }
+
+    private UiccCard getUiccCardUsingSubId(int subId) {
+        Phone phone = getPhone(subId);
+        return UiccController.getInstance().getUiccCard(phone.getPhoneId());
+    }
+
     //
     // Implementation of the ITelephony interface.
     //
@@ -1598,7 +1662,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      *
      * @throws SecurityException if the caller does not have the required permission/privilege
      */
-    private void enforceModifyPermissionOrCarrierPrivilege() {
+    private void enforceModifyPermissionOrCarrierPrivilege(Phone phone) {
         int permission = mApp.checkCallingOrSelfPermission(
                 android.Manifest.permission.MODIFY_PHONE_STATE);
         if (permission == PackageManager.PERMISSION_GRANTED) {
@@ -1606,10 +1670,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         log("No modify permission, check carrier privilege next.");
-        if (getCarrierPrivilegeStatus() != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
+        if (getCarrierPrivilegeStatus(phone) !=
+                TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
             loge("No Carrier Privilege.");
             throw new SecurityException("No modify permission or carrier privilege.");
         }
+    }
+
+    private void enforceModifyPermissionOrCarrierPrivilege() {
+        enforceModifyPermissionOrCarrierPrivilege(mPhone);
     }
 
     /**
@@ -2000,24 +2069,34 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public IccOpenLogicalChannelResponse iccOpenLogicalChannel(String AID) {
-        enforceModifyPermissionOrCarrierPrivilege();
+        return iccOpenLogicalChannelUsingSubId(getDefaultSubscription(), AID);
+    }
+
+    @Override
+    public IccOpenLogicalChannelResponse iccOpenLogicalChannelUsingSubId(int subId, String AID) {
+        enforceModifyPermissionOrCarrierPrivilege(getPhone(subId));
 
         if (DBG) log("iccOpenLogicalChannel: " + AID);
         IccOpenLogicalChannelResponse response = (IccOpenLogicalChannelResponse)sendRequest(
-            CMD_OPEN_CHANNEL, AID);
+            CMD_OPEN_CHANNEL, AID, subId);
         if (DBG) log("iccOpenLogicalChannel: " + response);
         return response;
     }
 
     @Override
     public boolean iccCloseLogicalChannel(int channel) {
-        enforceModifyPermissionOrCarrierPrivilege();
+        return iccCloseLogicalChannelUsingSubId(getDefaultSubscription(), channel);
+    }
+
+    @Override
+    public boolean iccCloseLogicalChannelUsingSubId(int subId, int channel) {
+        enforceModifyPermissionOrCarrierPrivilege(getPhone(subId));
 
         if (DBG) log("iccCloseLogicalChannel: " + channel);
         if (channel < 0) {
           return false;
         }
-        Boolean success = (Boolean)sendRequest(CMD_CLOSE_CHANNEL, channel);
+        Boolean success = (Boolean)sendRequest(CMD_CLOSE_CHANNEL, channel, subId);
         if (DBG) log("iccCloseLogicalChannel: " + success);
         return success;
     }
@@ -2025,7 +2104,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public String iccTransmitApduLogicalChannel(int channel, int cla,
             int command, int p1, int p2, int p3, String data) {
-        enforceModifyPermissionOrCarrierPrivilege();
+        return iccTransmitApduLogicalChannelUsingSubId(getDefaultSubscription(), channel,
+                cla, command, p1, p2, p3, data);
+    }
+
+    @Override
+    public String iccTransmitApduLogicalChannelUsingSubId(int subId, int channel, int cla,
+            int command, int p1, int p2, int p3, String data) {
+        enforceModifyPermissionOrCarrierPrivilege(getPhone(subId));
 
         if (DBG) {
             log("iccTransmitApduLogicalChannel: chnl=" + channel + " cla=" + cla +
@@ -2038,7 +2124,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         IccIoResult response = (IccIoResult)sendRequest(CMD_TRANSMIT_APDU_LOGICAL_CHANNEL,
-                new IccAPDUArgument(channel, cla, command, p1, p2, p3, data));
+                new IccAPDUArgument(channel, cla, command, p1, p2, p3, data), subId);
         if (DBG) log("iccTransmitApduLogicalChannel: " + response);
 
         // Append the returned status code to the end of the response payload.
@@ -2053,7 +2139,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public String iccTransmitApduBasicChannel(int cla, int command, int p1, int p2,
                 int p3, String data) {
-        enforceModifyPermissionOrCarrierPrivilege();
+        return iccTransmitApduBasicChannelUsingSubId(getDefaultSubscription(), cla, command, p1,
+                p2, p3, data);
+    }
+
+    @Override
+    public String iccTransmitApduBasicChannelUsingSubId(int subId, int cla, int command, int p1,
+            int p2, int p3, String data) {
+        enforceModifyPermissionOrCarrierPrivilege(getPhone(subId));
 
         if (DBG) {
             log("iccTransmitApduBasicChannel: cla=" + cla + " cmd=" + command + " p1="
@@ -2061,7 +2154,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         IccIoResult response = (IccIoResult)sendRequest(CMD_TRANSMIT_APDU_BASIC_CHANNEL,
-                new IccAPDUArgument(0, cla, command, p1, p2, p3, data));
+                new IccAPDUArgument(0, cla, command, p1, p2, p3, data), subId);
         if (DBG) log("iccTransmitApduBasicChannel: " + response);
 
         // Append the returned status code to the end of the response payload.
@@ -2076,7 +2169,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public byte[] iccExchangeSimIO(int fileID, int command, int p1, int p2, int p3,
             String filePath) {
-        enforceModifyPermissionOrCarrierPrivilege();
+        return iccExchangeSimIOUsingSubId(getDefaultSubscription(), fileID, command, p1, p2, p3,
+                filePath);
+    }
+
+    @Override
+    public byte[] iccExchangeSimIOUsingSubId(int subId, int fileID, int command, int p1, int p2,
+            int p3, String filePath) {
+        enforceModifyPermissionOrCarrierPrivilege(getPhone(subId));
 
         if (DBG) {
             log("Exchange SIM_IO " + fileID + ":" + command + " " +
@@ -2085,7 +2185,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         IccIoResult response =
             (IccIoResult)sendRequest(CMD_EXCHANGE_SIM_IO,
-                    new IccAPDUArgument(-1, fileID, command, p1, p2, p3, filePath));
+                    new IccAPDUArgument(-1, fileID, command, p1, p2, p3, filePath), subId);
 
         if (DBG) {
           log("Exchange SIM_IO [R]" + response);
@@ -2370,15 +2470,19 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
-    @Override
-    public int getCarrierPrivilegeStatus() {
-        UiccCard card = UiccController.getInstance().getUiccCard(mPhone.getPhoneId());
+    public int getCarrierPrivilegeStatus(Phone phone) {
+        UiccCard card = UiccController.getInstance().getUiccCard(phone.getPhoneId());
         if (card == null) {
             loge("getCarrierPrivilegeStatus: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
         return card.getCarrierPrivilegeStatusForCurrentTransaction(
-                mPhone.getContext().getPackageManager());
+                phone.getContext().getPackageManager());
+    }
+
+    @Override
+    public int getCarrierPrivilegeStatus() {
+        return getCarrierPrivilegeStatus(mPhone);
     }
 
     @Override
@@ -2910,5 +3014,27 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public ModemActivityInfo getModemActivityInfo() {
         return (ModemActivityInfo) sendRequest(CMD_GET_MODEM_ACTIVITY_INFO, null);
+    }
+
+    public byte[] getAtr() {
+        return getAtrUsingSubId(getDefaultSubscription());
+    }
+
+    @Override
+    public byte[] getAtrUsingSubId(int subId) {
+        if (Binder.getCallingUid() != Process.NFC_UID) {
+            throw new SecurityException("Only Smartcard API may access UICC");
+        }
+        Log.d(LOG_TAG, "SIM_GET_ATR ");
+        String response = (String)sendRequest(CMD_SIM_GET_ATR, null, subId);
+        byte[] result = null;
+        if (response != null && response.length() != 0) {
+            try{
+                result = IccUtils.hexStringToBytes(response);
+            } catch(RuntimeException re) {
+                Log.e(LOG_TAG, "Invalid format of the response string");
+            }
+        }
+        return result;
     }
 }
