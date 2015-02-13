@@ -62,6 +62,12 @@ abstract class TelephonyConnection extends Connection {
     private static final int MSG_CONFERENCE_MERGE_FAILED = 6;
     private static final int MSG_SUPP_SERVICE_NOTIFY = 7;
     private static final int MSG_CONNECTION_EXTRAS_CHANGED = 8;
+    private static final int MSG_SET_VIDEO_STATE = 9;
+    private static final int MSG_SET_LOCAL_VIDEO_CAPABILITY = 10;
+    private static final int MSG_SET_REMOTE_VIDEO_CAPABILITY = 11;
+    private static final int MSG_SET_VIDEO_PROVIDER = 12;
+    private static final int MSG_SET_AUDIO_QUALITY = 13;
+    private static final int MSG_SET_CONFERENCE_PARTICIPANTS = 14;
 
     /**
      * Mappings from {@link com.android.internal.telephony.Connection} extras keys to their
@@ -147,6 +153,37 @@ abstract class TelephonyConnection extends Connection {
                     final Bundle extras = (Bundle) msg.obj;
                     updateExtras(extras);
                     break;
+                case MSG_SET_VIDEO_STATE:
+                    int videoState = (int) msg.obj;
+                    setVideoState(videoState);
+                    break;
+
+                case MSG_SET_LOCAL_VIDEO_CAPABILITY:
+                    boolean localVideoCapable = false;
+                    localVideoCapable = (boolean) msg.obj;
+                    setLocalVideoCapable(localVideoCapable);
+                    break;
+
+                case MSG_SET_REMOTE_VIDEO_CAPABILITY:
+                    boolean remoteVideoCapable = false;
+                    remoteVideoCapable = (boolean) msg.obj;
+                    setRemoteVideoCapable(remoteVideoCapable);
+                    break;
+
+                case MSG_SET_VIDEO_PROVIDER:
+                    VideoProvider videoProvider = (VideoProvider) msg.obj;
+                    setVideoProvider(videoProvider);
+                    break;
+
+                case MSG_SET_AUDIO_QUALITY:
+                    int audioQuality = (int) msg.obj;
+                    setAudioQuality(audioQuality);
+                    break;
+
+                case MSG_SET_CONFERENCE_PARTICIPANTS:
+                    List<ConferenceParticipant> participants = (List<ConferenceParticipant>) msg.obj;
+                    updateConferenceParticipants(participants);
+                    break;
             }
         }
     };
@@ -185,7 +222,7 @@ abstract class TelephonyConnection extends Connection {
             new com.android.internal.telephony.Connection.ListenerBase() {
         @Override
         public void onVideoStateChanged(int videoState) {
-            setVideoState(videoState);
+            mHandler.obtainMessage(MSG_SET_VIDEO_STATE, videoState).sendToTarget();
         }
 
         /**
@@ -196,7 +233,7 @@ abstract class TelephonyConnection extends Connection {
          */
         @Override
         public void onLocalVideoCapabilityChanged(boolean capable) {
-            setLocalVideoCapable(capable);
+            mHandler.obtainMessage(MSG_SET_LOCAL_VIDEO_CAPABILITY, capable).sendToTarget();
         }
 
         /**
@@ -207,7 +244,7 @@ abstract class TelephonyConnection extends Connection {
          */
         @Override
         public void onRemoteVideoCapabilityChanged(boolean capable) {
-            setRemoteVideoCapable(capable);
+            mHandler.obtainMessage(MSG_SET_REMOTE_VIDEO_CAPABILITY, capable).sendToTarget();
         }
 
         /**
@@ -218,7 +255,7 @@ abstract class TelephonyConnection extends Connection {
          */
         @Override
         public void onVideoProviderChanged(VideoProvider videoProvider) {
-            setVideoProvider(videoProvider);
+            mHandler.obtainMessage(MSG_SET_VIDEO_PROVIDER, videoProvider).sendToTarget();
         }
 
         /**
@@ -240,7 +277,7 @@ abstract class TelephonyConnection extends Connection {
          */
         @Override
         public void onAudioQualityChanged(int audioQuality) {
-            setAudioQuality(audioQuality);
+            mHandler.obtainMessage(MSG_SET_AUDIO_QUALITY, audioQuality).sendToTarget();
         }
         /**
          * Handles a change in the state of conference participant(s), as reported by the
@@ -250,7 +287,7 @@ abstract class TelephonyConnection extends Connection {
          */
         @Override
         public void onConferenceParticipantsChanged(List<ConferenceParticipant> participants) {
-            updateConferenceParticipants(participants);
+            mHandler.obtainMessage(MSG_SET_CONFERENCE_PARTICIPANTS, participants).sendToTarget();
         }
 
         /*
