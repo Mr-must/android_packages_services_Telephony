@@ -32,6 +32,7 @@ import android.telecom.StatusHints;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.PhoneNumberUtils;
 
 import com.android.ims.ImsCallProfile;
 import com.android.internal.telephony.Call;
@@ -616,6 +617,7 @@ abstract class TelephonyConnection extends Connection {
     @Override
     public void onDisconnect() {
         Log.v(this, "onDisconnect");
+        PhoneNumberUtils.resetCountryDetectorInfo();
         hangup(android.telephony.DisconnectCause.LOCAL);
     }
 
