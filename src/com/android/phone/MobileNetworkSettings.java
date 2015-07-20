@@ -743,7 +743,8 @@ public class MobileNetworkSettings extends PreferenceActivity
                 ImsManager.isNonTtyOrTtyOnVolteEnabled(getApplicationContext()) &&
                 carrierConfig.getBoolean(CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL);
         mButtonDataRoam.setEnabled(hasActiveSubscriptions);
-        mButtonPreferredNetworkMode.setEnabled(hasActiveSubscriptions);
+        mButtonPreferredNetworkMode.setEnabled(hasActiveSubscriptions || (getResources().
+                getBoolean(R.bool.config_no_sim_display_network_modes)));
         mButtonEnabledNetworks.setEnabled(hasActiveSubscriptions);
         mButton4glte.setEnabled(hasActiveSubscriptions && canChange4glte);
         mLteDataServicePref.setEnabled(hasActiveSubscriptions);
