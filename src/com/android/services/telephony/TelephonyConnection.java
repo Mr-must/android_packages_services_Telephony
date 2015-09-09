@@ -836,7 +836,8 @@ abstract class TelephonyConnection extends Connection {
         Uri address;
         if (mOriginalConnection != null) {
             if (((getAddress() != null) &&
-                    (getPhone().getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA))) {
+                    (getPhone().getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA)) &&
+                    !isValidRingingCall()) {
                 address = getAddressFromNumber(mOriginalConnection.getOrigDialString());
             } else {
                 address = getAddressFromNumber(mOriginalConnection.getAddress());
