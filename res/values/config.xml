@@ -221,4 +221,10 @@
 
     <!-- Show Preferred Network Type options in No SIM case -->
     <bool name="config_no_sim_display_network_modes">false</bool>
+
+    <!-- To disable/enable CallForwardUnconditional Timer -->
+    <bool name="config_enable_cfu_time">false</bool>
+
+    <!-- Config to enabled reading and displaying of EF_PLMN_SEL SIM file -->
+    <bool name="config_ef_plmn_sel">false</bool>
 </resources>
