@@ -458,9 +458,6 @@ final class TelecomAccountRegistry {
         if (phoneAccountsEnabled) {
             for (Phone phone : phones) {
                 int subscriptionId = phone.getSubId();
-                 if (provisionStatus == INVALID_STATE) {
-                     provisionStatus = PROVISIONED;
-                 }
                 Log.d(this, "Phone with subscription id %d", subscriptionId);
                 if (subscriptionId >= 0) {
                     mAccounts.add(new AccountEntry(phone, false /* emergency */,
